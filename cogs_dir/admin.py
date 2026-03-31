@@ -5,6 +5,7 @@ Handles auto-role assignment and guild configuration.
 
 import asyncio
 import discord
+from typing import Any
 from discord import option
 from discord.ext import commands
 import re
@@ -1060,7 +1061,7 @@ class Administration(commands.Cog):
             )
 
     
-    @adm_group.command(name="send-msg", description="Manually verify a member")
+    @adm_group.command(name="send-msg", description="Send a message to <channel> via Kaede")
     @option("channel", description="#text-channel to send message to")
     @option("text", description="Message to send")
     async def send_msg(
@@ -1091,6 +1092,68 @@ class Administration(commands.Cog):
             await self._send_admin_notification(
                 ctx.guild,
                 f"{ERROR_EMOJI} Failed to send message to channel {channel.mention}: {str(e)}",
+            )
+
+    
+    @adm_group.command(name="send-msg-custom", description="Send a multi-line message to <channel> via Kaede")
+    @option("channel", description="#text-channel to send message to")
+    async def send_msg_custom(self, ctx: discord.ApplicationContext, channel: discord.TextChannel):
+        """
+        Have the bot send a multi-line message to a target text channel.
+
+        Critical: Do not log text. Only attempt to send.
+        """
+
+        # Helper
+        def check(m: discord.Message):
+            # Ensure message channel and author are same as command invoker
+            if ctx.channel is None:
+                return False
+            return (
+                ctx.author == m.author
+                and ctx.channel.id == m.channel.id
+            )
+
+        # Verify administrative permission
+        assert ctx.guild is not None
+        assert isinstance(ctx.author, discord.Member)
+        if not self._has_permission(ctx.author):
+            await ctx.respond(PERMISSION_ERROR, ephemeral=True)
+            return
+
+        # Prompt the user: "Hey! Reply with the message you would like to send:"
+        user_prompt: str = f"Hey {ctx.author.display_name}! REPLY to me with the message you would like to send: "
+        try:
+            await ctx.respond(user_prompt)
+        except Exception:
+            logger.exception("Exception: ")
+            return
+
+        # Await user's reply/response
+        content: str | None = None
+        try:
+            user_response: discord.Message | None = await self.bot.wait_for(
+                'message',
+                check=check,
+                timeout=60.0
+            )
+            assert user_response is not None
+
+            content = user_response.content
+            assert content is not None
+        except Exception:
+            logger.exception("Exception: ")
+            return await ctx.respond(f"{ERROR_EMOJI} Ah-something went wrong...try again?")
+
+        # Attempt to send the message
+        try:
+            await channel.send(user_response.content)
+            await ctx.respond(f"{SUCCESS_EMOJI} Message sent.", ephemeral=True)
+        except Exception:
+            logger.exception("Exception: ")
+            await self._send_admin_notification(
+                ctx.guild,
+                f"{ERROR_EMOJI} Ah-I couldn't send your message...please check logs! :persevere: or try again!"
             )
 
 
