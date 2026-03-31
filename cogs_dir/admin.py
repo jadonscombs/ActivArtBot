@@ -1138,7 +1138,7 @@ class Administration(commands.Cog):
         content: str | None = None
         try:
             user_response: discord.Message | None = await self.bot.wait_for(
-                "message", check=check, timeout=60.0
+                "message", check=check, timeout=240.0
             )
             assert user_response is not None
 
