@@ -15,7 +15,7 @@ from utils_dir.constants import (
     get_guild_config,
     register_guild,
     update_guild_config,
-    remove_guild
+    remove_guild,
 )
 
 
@@ -30,7 +30,7 @@ from utils_dir.constants import (
     ADMIN_ROLE_IDS_KEY,
     ADMIN_CHANNEL_ID_KEY,
     VERIFIED_ROLE_IDS_KEY,
-    COGS_DIR_NAME
+    COGS_DIR_NAME,
 )
 
 from utils_dir.messages import (
@@ -274,7 +274,7 @@ class Administration(commands.Cog):
         if not ctx.guild:
             await ctx.respond(GUILD_ONLY_ERROR, ephemeral=True)
             return
-        
+
         assert isinstance(ctx.author, discord.Member)
         if not self._has_permission(ctx.author):
             await ctx.respond(PERMISSION_ERROR, ephemeral=True)
@@ -833,7 +833,7 @@ class Administration(commands.Cog):
         if not ctx.guild:
             await ctx.respond(GUILD_ONLY_ERROR, ephemeral=True)
             return
-        
+
         assert isinstance(ctx.author, discord.Member)
         if not self._has_permission(ctx.author):
             await ctx.respond(PERMISSION_ERROR, ephemeral=True)
@@ -1060,15 +1060,17 @@ class Administration(commands.Cog):
                 ephemeral=ephemeral,
             )
 
-    
-    @adm_group.command(name="send-msg", description="Send a message to <channel> via Kaede")
+    @adm_group.command(
+        name="send-msg", description="Send a message to <channel> via Kaede"
+    )
     @option("channel", description="#text-channel to send message to")
     @option("text", description="Message to send")
     async def send_msg(
         self,
         ctx: discord.ApplicationContext,
         channel: discord.TextChannel,
-        *, text: str
+        *,
+        text: str,
     ):
         """
         Have the bot send a message to a target text channel.
@@ -1094,10 +1096,14 @@ class Administration(commands.Cog):
                 f"{ERROR_EMOJI} Failed to send message to channel {channel.mention}: {str(e)}",
             )
 
-    
-    @adm_group.command(name="send-msg-custom", description="Send a multi-line message to <channel> via Kaede")
+    @adm_group.command(
+        name="send-msg-custom",
+        description="Send a multi-line message to <channel> via Kaede",
+    )
     @option("channel", description="#text-channel to send message to")
-    async def send_msg_custom(self, ctx: discord.ApplicationContext, channel: discord.TextChannel):
+    async def send_msg_custom(
+        self, ctx: discord.ApplicationContext, channel: discord.TextChannel
+    ):
         """
         Have the bot send a multi-line message to a target text channel.
 
@@ -1109,10 +1115,7 @@ class Administration(commands.Cog):
             # Ensure message channel and author are same as command invoker
             if ctx.channel is None:
                 return False
-            return (
-                ctx.author == m.author
-                and ctx.channel.id == m.channel.id
-            )
+            return ctx.author == m.author and ctx.channel.id == m.channel.id
 
         # Verify administrative permission
         assert ctx.guild is not None
@@ -1122,7 +1125,9 @@ class Administration(commands.Cog):
             return
 
         # Prompt the user: "Hey! Reply with the message you would like to send:"
-        user_prompt: str = f"Hey {ctx.author.display_name}! REPLY to me with the message you would like to send: "
+        user_prompt: str = (
+            f"Hey {ctx.author.display_name}! REPLY to me with the message you would like to send: "
+        )
         try:
             await ctx.respond(user_prompt)
         except Exception:
@@ -1133,9 +1138,7 @@ class Administration(commands.Cog):
         content: str | None = None
         try:
             user_response: discord.Message | None = await self.bot.wait_for(
-                'message',
-                check=check,
-                timeout=60.0
+                "message", check=check, timeout=60.0
             )
             assert user_response is not None
 
@@ -1143,7 +1146,9 @@ class Administration(commands.Cog):
             assert content is not None
         except Exception:
             logger.exception("Exception: ")
-            return await ctx.respond(f"{ERROR_EMOJI} Ah-something went wrong...try again?")
+            return await ctx.respond(
+                f"{ERROR_EMOJI} Ah-something went wrong...try again?"
+            )
 
         # Attempt to send the message
         try:
@@ -1153,9 +1158,8 @@ class Administration(commands.Cog):
             logger.exception("Exception: ")
             await self._send_admin_notification(
                 ctx.guild,
-                f"{ERROR_EMOJI} Ah-I couldn't send your message...please check logs! :persevere: or try again!"
+                f"{ERROR_EMOJI} Ah-I couldn't send your message...please check logs! :persevere: or try again!",
             )
-
 
     @adm_group.command(name="reload-ext", description="Reload a bot extension")
     @option("ext", description="Extension to reload (e.g., 'admin' for cogs.admin)")
@@ -1166,7 +1170,9 @@ class Administration(commands.Cog):
         try:
             target_extension: str = f"{COGS_DIR_NAME}.{ext}"
             if target_extension not in self.bot.extensions:
-                raise FileNotFoundError(f"{WARNING_EMOJI} Extension '{target_extension}' could not be found. Please verify extension name.")
+                raise FileNotFoundError(
+                    f"{WARNING_EMOJI} Extension '{target_extension}' could not be found. Please verify extension name."
+                )
             self.bot.reload_extension(target_extension)
             await ctx.respond(f"{SUCCESS_EMOJI} Extension reloaded.", ephemeral=True)
         except Exception:
