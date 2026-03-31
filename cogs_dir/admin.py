@@ -10,11 +10,11 @@ from discord.ext import commands
 import re
 
 from utils_dir.constants import (
+    logger,
     get_guild_config,
     register_guild,
     update_guild_config,
-    remove_guild,
-    logger,
+    remove_guild
 )
 
 
@@ -29,6 +29,7 @@ from utils_dir.constants import (
     ADMIN_ROLE_IDS_KEY,
     ADMIN_CHANNEL_ID_KEY,
     VERIFIED_ROLE_IDS_KEY,
+    COGS_DIR_NAME
 )
 
 from utils_dir.messages import (
@@ -1057,6 +1058,56 @@ class Administration(commands.Cog):
                 f"{ERROR_EMOJI} Failed to assign roles to {member.mention}: {error_message}",
                 ephemeral=ephemeral,
             )
+
+    
+    @adm_group.command(name="send-msg", description="Manually verify a member")
+    @option("channel", description="#text-channel to send message to")
+    @option("text", description="Message to send")
+    async def send_msg(
+        self,
+        ctx: discord.ApplicationContext,
+        channel: discord.TextChannel,
+        *, text: str
+    ):
+        """
+        Have the bot send a message to a target text channel.
+
+        Critical: Do not log text. Only attempt to send.
+        """
+        assert ctx.guild is not None
+
+        # Verify administrative permission
+        assert isinstance(ctx.author, discord.Member)
+        if not self._has_permission(ctx.author):
+            await ctx.respond(PERMISSION_ERROR, ephemeral=True)
+            return
+
+        # Attempt to send message to target channel
+        try:
+            await channel.send(text)
+            await ctx.respond(f"{SUCCESS_EMOJI} Message sent.", ephemeral=True)
+        except Exception as e:
+            logger.exception("Exception: ")
+            await self._send_admin_notification(
+                ctx.guild,
+                f"{ERROR_EMOJI} Failed to send message to channel {channel.mention}: {str(e)}",
+            )
+
+
+    @adm_group.command(name="reload-ext", description="Reload a bot extension")
+    @option("ext", description="Extension to reload (e.g., 'admin' for cogs.admin)")
+    async def reload_ext(self, ctx: discord.ApplicationContext, ext: str):
+        """
+        Administrative command to reload a bot extension (Cog) to ingest newest code changes.
+        """
+        try:
+            target_extension: str = f"{COGS_DIR_NAME}.{ext}"
+            if target_extension not in self.bot.extensions:
+                raise FileNotFoundError(f"{WARNING_EMOJI} Extension '{target_extension}' could not be found. Please verify extension name.")
+            self.bot.reload_extension(target_extension)
+            await ctx.respond(f"{SUCCESS_EMOJI} Extension reloaded.", ephemeral=True)
+        except Exception:
+            logger.exception("Exception: ")
 
 
 def setup(bot: commands.Bot):

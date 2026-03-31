@@ -17,7 +17,8 @@ BOT_TOKEN_KEY = "BOT_TOKEN"
 # File paths
 CONFIG_FILE = Path("config.json")
 LOG_DIR = Path("logs")
-COGS_DIR_PATH = Path("cogs_dir")
+COGS_DIR_NAME = "cogs_dir"
+COGS_DIR_PATH = Path(COGS_DIR_NAME)
 
 # Auto role constants
 AUTOROLE_TRIGGER_KEY = "auto-role-trigger"
